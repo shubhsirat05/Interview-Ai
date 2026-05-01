@@ -1,0 +1,46 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import mongoose from "mongoose";
+import { rateLimit } from "express-rate-limit";
+
+import authRoutes from "./src/routes/auth.js";
+import interviewRoutes from "./src/routes/interview.js";
+import dashboardRoutes from "./src/routes/dashboard.js";
+import resumeRoutes from "./src/routes/resume.js";
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(helmet());
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  credentials: true,
+}));
+app.use(express.json());
+app.use("/api", rateLimit({ windowMs: 60000, max: 30 }));
+
+app.use("/api/auth", authRoutes);
+app.use("/api/interview", interviewRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/resume", resumeRoutes);
+
+app.get("/api/health", (_, res) => res.json({ status: "ok" }));
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message || "Server error" });
+});
+
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection failed:", err.message);
+    process.exit(1);
+  });
