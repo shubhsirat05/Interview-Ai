@@ -15,10 +15,21 @@ import resumeRoutes from "./src/routes/resume.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet());
 app.use(cors({
   origin: function(origin, callback) {
-    callback(null, true); // Allow all origins for now
+    // Allow requests with no origin (mobile apps, curl)
+    if (!origin) return callback(null, true);
+    
+    // Allow all vercel.app domains + localhost
+    if (
+      origin.includes('vercel.app') ||
+      origin.includes('localhost') ||
+      origin === process.env.CLIENT_URL
+    ) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
